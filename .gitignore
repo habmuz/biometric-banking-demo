@@ -1,0 +1,64 @@
+# ── Secrets & credentials ──────────────────────────────────────────────────────
+.env
+*.env
+!*.env.example        # keep example files
+
+# ── Python ─────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# ── Agent runtime data ─────────────────────────────────────────────────────────
+agent/data/
+agent/audit.jsonl
+agent/anti_spoof/models/   # downloaded at build time (~3.4 MB ONNX files)
+
+# ── InsightFace model cache ────────────────────────────────────────────────────
+.insightface/
+
+# ── Node / React Native ────────────────────────────────────────────────────────
+node_modules/
+mobile/node_modules/
+mobile/web-build/
+mobile/.expo/
+mobile/android/
+mobile/ios/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Docker volumes / build artifacts ──────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── macOS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── IDE ────────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Claude Code project settings ──────────────────────────────────────────────
+.claude/
+
+# ── Cloudflare tunnel credentials ─────────────────────────────────────────────
+*.json
+!mobile/app.json
+!mobile/package.json
+!mobile/tsconfig.json
+!grafana/provisioning/**/*.json
+!keycloak/**/*.json

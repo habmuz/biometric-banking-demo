@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SC Biometric Banking — Live Demo</title>
+  <style>
+    /* ── Design Tokens ─────────────────────────────── */
+    :root {
+      --sc-green:        #00865A;
+      --sc-green-dark:   #005C3D;
+      --sc-green-light:  #E6F4EF;
+      --sc-red:          #C0392B;
+      --sc-bg:           #F7F8FA;
+      --sc-white:        #FFFFFF;
+      --text-primary:    #1A1A2E;
+      --text-secondary:  #5A6473;
+      --text-muted:      #9BA5B0;
+      --border:          #E4E8ED;
+      --camera-bg:       #0D1117;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: #0F1117;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      gap: 24px;
+    }
+
+    .page-title {
+      color: rgba(255,255,255,0.45);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ── Phone Frame ─────────────────────────────── */
+    .phone {
+      width: 375px;
+      height: 812px;
+      background: var(--sc-white);
+      border-radius: 44px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 0 2px #2A2D35, 0 0 0 6px #1A1C22, 0 30px 80px rgba(0,0,0,0.5);
+      flex-shrink: 0;
+    }
+
+    .notch {
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 120px; height: 30px;
+      background: #0F1117;
+      border-radius: 0 0 20px 20px;
+      z-index: 20;
+    }
+
+    /* ── Screens ─────────────────────────────────── */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .screen.active { display: flex; }
+
+    /* Status bar */
+    .status-bar {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .status-bar.green  { background: var(--sc-green); }
+    .status-bar.dark   { background: var(--camera-bg); }
+    .status-bar.white  { background: var(--sc-white); }
+    .status-time { font-size: 13px; font-weight: 600; }
+    .status-time.light { color: var(--sc-white); }
+    .status-time.dark  { color: var(--text-primary); }
+
+    /* ── Buttons ──────────────────────────────────── */
+    .btn-primary {
+      width: 100%; height: 52px;
+      background: var(--sc-green); color: white;
+      border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; font-family: var(--font);
+    }
+    .btn-primary:active { opacity: 0.9; }
+    .btn-ghost {
+      width: 100%; height: 44px;
+      background: transparent; color: var(--text-secondary);
+      border: none; font-size: 13px;
+      cursor: pointer; font-family: var(--font);
+    }
+
+    /* ══════════════════════════════════════════
+       SCREEN 1 — CONSENT
+    ══════════════════════════════════════════ */
+    #screen-consent { background: var(--sc-white); }
+
+    .consent-hero {
+      background: linear-gradient(160deg, var(--sc-green), var(--sc-green-dark));
+      padding: 32px 28px 36px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 12px;
+      flex-shrink: 0;
+    }
+    .consent-icon {
+      width: 72px; height: 72px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; margin-top: 8px;
+    }
+    .consent-hero h2 { color: white; font-size: 20px; font-weight: 700; text-align: center; }
+    .consent-hero p  { color: rgba(255,255,255,0.75); font-size: 13px; text-align: center; line-height: 1.5; }
+
+    .consent-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+    .pdpa-badge {
+      background: #FFF8E1; border: 1px solid #FFD54F;
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 20px;
+      font-size: 11px; color: #795548; font-weight: 500; line-height: 1.5;
+    }
+
+    .consent-point { display: flex; gap: 12px; margin-bottom: 18px; align-items: flex-start; }
+    .consent-point-icon {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: var(--sc-green-light);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 16px;
+    }
+    .consent-point h4 { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+    .consent-point p  { font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
+
+    .consent-footer { padding: 12px 24px 32px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+
+    /* ══════════════════════════════════════════
+       SCREEN 2 — LOGIN
+    ══════════════════════════════════════════ */
+    #screen-login { background: var(--sc-white); }
+
+    .login-header {
+      background: var(--sc-green);
+      padding: 44px 28px 32px;
+      flex-shrink: 0;
+    }
+    .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .logo-mark {
+      width: 36px; height: 36px; background: white;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 900; color: var(--sc-green);
+    }
+    .logo-text { color: white; font-size: 15px; font-weight: 700; }
+    .logo-sub  { color: rgba(255,255,255,0.65); font-size: 10px; letter-spacing: 0.8px; }
+    .login-header h1 { color: white; font-size: 24px; font-weight: 700; }
+    .login-header p  { color: rgba(255,255,255,0.7); font-size: 13px; margin-top: 4px; }
+
+    .login-body { flex: 1; padding: 24px 24px; display: flex; flex-direction: column; gap: 18px; }
+
+    .input-group { display: flex; flex-direction: column; gap: 6px; }
+    .input-group label { font-size: 11px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px; text-transform: uppercase; }
+    .input-group input {
+      height: 52px; border: 1.5px solid var(--border);
+      border-radius: 14px; padding: 0 16px;
+      font-size: 15px; color: var(--text-primary);
+      font-family: var(--font); outline: none;
+    }
+    .input-group input:focus { border-color: var(--sc-green); }
+
+    .divider-row { display: flex; align-items: center; gap: 10px; }
+    .divider-line { flex: 1; height: 1px; background: var(--border); }
+    .divider-text { font-size: 12px; color: var(--text-muted); }
+
+    .auth-row { display: flex; gap: 12px; align-items: flex-start; }
+
+    #btn-login { flex: 1; }
+
+    .faceid-wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .btn-faceid {
+      width: 52px; height: 52px;
+      background: white; border: 1.5px solid var(--sc-green);
+      border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 22px; position: relative;
+    }
+    .pulse-ring {
+      position: absolute; inset: -4px;
+      border-radius: 17px; border: 2px solid var(--sc-green);
+      animation: pulse 1.8s ease-out infinite;
+    }
+    @keyframes pulse { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.3); opacity: 0; } }
+    .faceid-label { font-size: 9px; color: var(--sc-green); font-weight: 600; }
+
+    .security-badge {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 14px; background: var(--sc-green-light);
+      border-radius: 8px; margin-top: auto;
+    }
+    .security-badge span { font-size: 11px; color: var(--sc-green-dark); font-weight: 500; }
+
+    .login-footer { padding: 12px 24px 28px; text-align: center; flex-shrink: 0; }
+    .login-footer p { font-size: 10px; color: var(--text-muted); line-height: 1.5; }
+
+    /* ══════════════════════════════════════════
+       SCREEN 3 — CAPTURE
+    ══════════════════════════════════════════ */
+    #screen-capture { background: var(--camera-bg); }
+
+    .capture-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 48px 20px 12px; flex-shrink: 0;
+    }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,0.12);
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 16px;
+    }
+    .capture-title { color: white; font-size: 16px; font-weight: 600; }
+
+    .capture-instruction {
+      color: rgba(255,255,255,0.6); font-size: 12px;
+      text-align: center; padding: 0 28px; line-height: 1.5;
+      margin-bottom: 12px; flex-shrink: 0;
+    }
+
+    .capture-viewfinder {
+      flex: 1; position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Real camera video */
+    #camera-video {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* mirror front cam */
+    }
+
+    /* Oval overlay */
+    .oval-wrap {
+      position: relative; z-index: 5;
+      width: 220px; height: 280px;
+    }
+    .oval-ring {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      border: 3px solid rgba(0,134,90,0.9);
+      position: absolute;
+      box-shadow: 0 0 0 2000px rgba(0,0,0,0.5), 0 0 24px rgba(0,134,90,0.3) inset;
+    }
+    .scan-line {
+      position: absolute;
+      width: 80%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--sc-green), transparent);
+      left: 10%;
+      animation: scan 2s ease-in-out infinite;
+    }
+    @keyframes scan { 0% { top: 15%; opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { top: 80%; opacity: 0; } }
+
+    .oval-corner { position: absolute; width: 22px; height: 22px; border-color: var(--sc-green); border-style: solid; }
+    .oval-corner.tl { top: 18px; left: 18px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+    .oval-corner.tr { top: 18px; right: 18px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+    .oval-corner.bl { bottom: 18px; left: 18px; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+    .oval-corner.br { bottom: 18px; right: 18px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+    .live-badge {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(0,134,90,0.9); border-radius: 999px;
+      padding: 5px 10px; display: flex; align-items: center; gap: 5px;
+      z-index: 10;
+    }
+    .live-dot { width: 6px; height: 6px; background: #7FFF9A; border-radius: 50%; animation: blink 1.2s ease-in-out infinite; }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+    .live-badge span { color: white; font-size: 10px; font-weight: 600; }
+
+    .capture-bottom {
+      padding: 16px 24px 36px; display: flex;
+      flex-direction: column; align-items: center; gap: 12px;
+      flex-shrink: 0;
+    }
+    .capture-btn {
+      width: 68px; height: 68px; border-radius: 50%;
+      border: 3px solid white; background: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .capture-btn-inner {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--sc-green);
+    }
+    .capture-hint { color: rgba(255,255,255,0.4); font-size: 11px; }
+
+    /* hidden canvas for capture */
+    #capture-canvas { display: none; }
+
+    /* ══════════════════════════════════════════
+       SCREEN 4 — PROCESSING
+    ══════════════════════════════════════════ */
+    #screen-processing { background: var(--sc-white); }
+
+    .proc-header {
+      background: var(--sc-green);
+      height: 180px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding-bottom: 28px; gap: 10px;
+      flex-shrink: 0;
+    }
+    .proc-logo {
+      width: 52px; height: 52px;
+      background: rgba(255,255,255,0.15); border-radius: 16px;
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+    }
+    .proc-header h2 { color: white; font-size: 18px; font-weight: 700; }
+    .proc-header p  { color: rgba(255,255,255,0.7); font-size: 13px; }
+
+    .proc-body { flex: 1; padding: 28px 24px; display: flex; flex-direction: column; gap: 0; }
+    .proc-label {
+      font-size: 11px; font-weight: 600; color: var(--text-secondary);
+      letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px;
+    }
+
+    .step-row {
+      display: flex; gap: 14px; align-items: flex-start;
+      position: relative; padding-bottom: 22px;
+    }
+    .step-row:last-child { padding-bottom: 0; }
+    .step-row::before {
+      content: ''; position: absolute;
+      left: 15px; top: 32px;
+      width: 2px; height: calc(100% - 16px);
+      background: var(--border);
+    }
+    .step-row:last-child::before { display: none; }
+    .step-row.done::before { background: var(--sc-green); }
+    .step-row.active::before { background: linear-gradient(to bottom, var(--sc-green), var(--border)); }
+
+    .step-icon {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; z-index: 1; font-size: 14px;
+    }
+    .step-row.done   .step-icon { background: var(--sc-green); color: white; }
+    .step-row.active .step-icon { background: var(--sc-green-light); border: 2px solid var(--sc-green); }
+    .step-row.active .step-icon .spinner { animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+
+    .step-info { flex: 1; }
+    .step-info h4 { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .step-row.pending .step-info h4 { color: var(--text-muted); }
+    .step-info p  { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .step-row.pending .step-info p { color: var(--text-muted); }
+
+    .step-badge {
+      font-size: 10px; font-weight: 600;
+      padding: 3px 8px; border-radius: 999px; align-self: center;
+    }
+    .step-badge.done    { background: var(--sc-green-light); color: var(--sc-green-dark); }
+    .step-badge.active  { background: #FFF3E0; color: #E65100; }
+    .step-badge.pending { background: var(--sc-bg); color: var(--text-muted); }
+
+    .proc-footer { padding: 16px 24px 28px; flex-shrink: 0; }
+    .sec-note {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 14px; background: var(--sc-green-light); border-radius: 12px;
+    }
+    .sec-note p { font-size: 11px; color: var(--sc-green-dark); line-height: 1.5; }
+
+    /* ══════════════════════════════════════════
+       SCREEN 5 — RESULT (success or fail)
+    ══════════════════════════════════════════ */
+    #screen-result {
+      background: var(--sc-bg);
+      align-items: center; justify-content: center;
+    }
+
+    .result-card {
+      width: calc(100% - 48px);
+      background: white; border-radius: 20px;
+      padding: 32px 24px; display: flex; flex-direction: column;
+      align-items: center; gap: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    .result-icon {
+      width: 80px; height: 80px; border-radius: 40px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+    }
+    .result-icon.success { background: var(--sc-green-light); }
+    .result-icon.fail    { background: #FDECEA; }
+
+    .result-title { font-size: 20px; font-weight: 700; color: var(--text-primary); text-align: center; }
+    .result-sub   { font-size: 13px; color: var(--text-secondary); text-align: center; line-height: 1.5; }
+
+    .result-scores {
+      width: 100%; background: var(--sc-bg); border-radius: 12px;
+      padding: 14px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .score-row { display: flex; justify-content: space-between; align-items: center; }
+    .score-label { font-size: 11px; color: var(--text-secondary); }
+    .score-val   { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+    .score-val.good { color: var(--sc-green); }
+    .score-val.bad  { color: var(--sc-red); }
+
+    .result-actions { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+
+    /* ══════════════════════════════════════════
+       SCREEN 6 — DASHBOARD
+    ══════════════════════════════════════════ */
+    #screen-dashboard { background: var(--sc-bg); }
+
+    .dash-header {
+      background: var(--sc-green);
+      padding: 44px 24px 0;
+      flex-shrink: 0;
+    }
+    .dash-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .dash-greeting p { color: rgba(255,255,255,0.65); font-size: 12px; margin-bottom: 2px; }
+    .dash-greeting h2 { color: white; font-size: 20px; font-weight: 700; }
+    .dash-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; cursor: pointer;
+    }
+
+    .portfolio-card {
+      background: rgba(0,0,0,0.15);
+      border-radius: 20px 20px 0 0;
+      padding: 18px 20px 24px;
+    }
+    .portfolio-label {
+      font-size: 10px; color: rgba(255,255,255,0.6);
+      letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 4px;
+    }
+    .portfolio-value {
+      color: white; font-size: 30px; font-weight: 700; letter-spacing: -1px; margin-bottom: 4px;
+    }
+    .portfolio-currency { font-size: 15px; font-weight: 400; opacity: 0.7; margin-right: 4px; }
+    .auth-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(0,0,0,0.2); border-radius: 999px;
+      padding: 4px 10px; margin-top: 8px;
+      font-size: 10px; color: rgba(255,255,255,0.7); font-weight: 500;
+    }
+
+    .dash-body { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+    .account-card {
+      background: white; border-radius: 14px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    .account-icon {
+      width: 42px; height: 42px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .account-icon.current  { background: #E3F2FD; }
+    .account-icon.savings  { background: var(--sc-green-light); }
+    .account-icon.fixed    { background: #FFF3E0; }
+    .account-icon.invest   { background: #F3E5F5; }
+
+    .account-info { flex: 1; }
+    .account-info h4 { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .account-info p  { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .account-balance { text-align: right; }
+    .account-balance .amount  { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+    .account-balance .currency { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+    .quick-actions {
+      background: white; border-radius: 14px; padding: 14px 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    .quick-actions h4 { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; }
+    .actions-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .action-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+    .action-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--sc-bg); display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .action-label { font-size: 9px; color: var(--text-secondary); font-weight: 500; text-align: center; }
+
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 14px; height: 68px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Toast ────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+      background: rgba(26,26,46,0.95); color: white;
+      padding: 12px 20px; border-radius: 999px;
+      font-size: 13px; font-weight: 500;
+      opacity: 0; transition: opacity 0.3s;
+      pointer-events: none; white-space: nowrap; z-index: 999;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ── Config panel ─────────────────────────── */
+    .config-panel {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 16px; width: 375px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .config-panel label { color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    .config-row { display: flex; gap: 8px; align-items: center; }
+    .config-row input {
+      flex: 1; background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+      padding: 8px 12px; color: white; font-size: 12px; font-family: monospace;
+      outline: none;
+    }
+    .config-row input:focus { border-color: var(--sc-green); }
+    .config-save {
+      background: var(--sc-green); color: white; border: none;
+      border-radius: 8px; padding: 8px 14px; font-size: 12px;
+      font-weight: 600; cursor: pointer; font-family: var(--font);
+    }
+    .config-hint { color: rgba(255,255,255,0.3); font-size: 10px; }
+  </style>
+</head>
+<body>
+
+  <p class="page-title">Standard Chartered Singapore — Live Biometric Demo</p>
+
+  <!-- Config panel -->
+  <div class="config-panel">
+    <label>API Endpoints</label>
+    <div class="config-row">
+      <input id="cfg-agent" value="http://localhost:8000" placeholder="Agent URL" />
+      <input id="cfg-portfolio" value="http://localhost:9000" placeholder="Portfolio URL" />
+      <button class="config-save" onclick="saveConfig()">Save</button>
+    </div>
+    <p class="config-hint">Agent: POST /auth/biometric · Portfolio: GET /portfolio (with JWT)</p>
+  </div>
+
+  <!-- Phone -->
+  <div class="phone">
+    <div class="notch"></div>
+
+    <!-- ══ SCREEN 1 — CONSENT ══ -->
+    <div class="screen active" id="screen-consent">
+      <div class="status-bar green">
+        <span class="status-time light" id="clock-1">9:41</span>
+      </div>
+      <div class="consent-hero">
+        <div class="consent-icon">👤</div>
+        <h2>Enable Face ID Login</h2>
+        <p>Use facial recognition to securely access your Standard Chartered account</p>
+      </div>
+      <div class="consent-body">
+        <div class="pdpa-badge">
+          🛡️ Protected under PDPA (Singapore) · Biometric data used for authentication only
+        </div>
+        <div class="consent-point">
+          <div class="consent-point-icon">🔒</div>
+          <div>
+            <h4>Image never stored</h4>
+            <p>Your face image is processed in real-time and immediately discarded after authentication.</p>
+          </div>
+        </div>
+        <div class="consent-point">
+          <div class="consent-point-icon">🧬</div>
+          <div>
+            <h4>ISO 30107-3 Liveness Detection</h4>
+            <p>MiniFASNet PAD model confirms you're physically present. Photos and videos are rejected.</p>
+          </div>
+        </div>
+        <div class="consent-point">
+          <div class="consent-point-icon">🤖</div>
+          <div>
+            <h4>Anti-Deepfake Screening</h4>
+            <p>DCT frequency analysis detects GAN and diffusion-generated synthetic faces.</p>
+          </div>
+        </div>
+        <div class="consent-point">
+          <div class="consent-point-icon">↩️</div>
+          <div>
+            <h4>Withdraw anytime</h4>
+            <p>Disable in Settings. Template deleted within 30 days. PIN login always available.</p>
+          </div>
+        </div>
+      </div>
+      <div class="consent-footer">
+        <button class="btn-primary" onclick="go('login')">I Agree &amp; Enable Face ID</button>
+        <button class="btn-ghost" onclick="go('login')">Not Now — Use PIN Instead</button>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN 2 — LOGIN ══ -->
+    <div class="screen" id="screen-login">
+      <div class="login-header">
+        <div class="logo-row">
+          <div class="logo-mark">SC</div>
+          <div>
+            <div class="logo-text">Standard Chartered</div>
+            <div class="logo-sub">SINGAPORE</div>
+          </div>
+        </div>
+        <h1>Welcome Back</h1>
+        <p>Sign in to continue</p>
+      </div>
+      <div class="login-body">
+        <div class="input-group">
+          <label>Username</label>
+          <input id="inp-username" type="text" value="demo_user" autocomplete="off" autocapitalize="off" />
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input id="inp-password" type="password" placeholder="Enter password" />
+        </div>
+        <div class="divider-row">
+          <div class="divider-line"></div>
+          <span class="divider-text">or sign in with</span>
+          <div class="divider-line"></div>
+        </div>
+        <div class="auth-row">
+          <button class="btn-primary" id="btn-login" onclick="showToast('Password login not wired — use Face ID')">Login</button>
+          <div class="faceid-wrap">
+            <button class="btn-faceid" onclick="startCapture()">
+              <div class="pulse-ring"></div>
+              👤
+            </button>
+            <span class="faceid-label">Face ID</span>
+          </div>
+        </div>
+        <div class="security-badge">
+          🔒 <span>256-bit encrypted · MAS regulated · <strong>ACR Level 3</strong></span>
+        </div>
+      </div>
+      <div class="login-footer">
+        <p>By signing in you agree to our Terms &amp; Conditions and Privacy Policy (PDPA compliant)</p>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN 3 — CAPTURE ══ -->
+    <div class="screen" id="screen-capture">
+      <div class="status-bar dark"></div>
+      <div class="capture-topbar">
+        <button class="icon-btn" onclick="stopCamera(); go('login')">‹</button>
+        <span class="capture-title">Face Verification</span>
+        <button class="icon-btn">?</button>
+      </div>
+      <p class="capture-instruction">Position your face within the oval. Ensure good lighting and look directly at the camera.</p>
+
+      <div class="capture-viewfinder">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <div class="live-badge">
+          <div class="live-dot"></div>
+          <span>Liveness Active</span>
+        </div>
+        <div class="oval-wrap">
+          <div class="oval-ring">
+            <div class="scan-line"></div>
+          </div>
+          <div class="oval-corner tl"></div>
+          <div class="oval-corner tr"></div>
+          <div class="oval-corner bl"></div>
+          <div class="oval-corner br"></div>
+        </div>
+      </div>
+
+      <div class="capture-bottom">
+        <p class="capture-hint">Tap to capture your face</p>
+        <button class="capture-btn" onclick="capturePhoto()">
+          <div class="capture-btn-inner"></div>
+        </button>
+        <p class="capture-hint" id="capture-attempt">Attempt 1 of 5</p>
+      </div>
+      <canvas id="capture-canvas"></canvas>
+    </div>
+
+    <!-- ══ SCREEN 4 — PROCESSING ══ -->
+    <div class="screen" id="screen-processing">
+      <div class="status-bar green">
+        <span class="status-time light">SC Banking</span>
+      </div>
+      <div class="proc-header">
+        <div class="proc-logo">🔐</div>
+        <h2>Verifying Identity</h2>
+        <p id="proc-subtitle">Biometric Agent is processing…</p>
+      </div>
+      <div class="proc-body">
+        <p class="proc-label">Authentication Steps</p>
+
+        <div class="step-row done" id="step-consent">
+          <div class="step-icon">✓</div>
+          <div class="step-info"><h4>PDPA Consent</h4><p>Consent verified</p></div>
+          <span class="step-badge done">Done</span>
+        </div>
+
+        <div class="step-row" id="step-capture">
+          <div class="step-icon">📷</div>
+          <div class="step-info"><h4>Face Capture</h4><p id="step-capture-sub">Validating image…</p></div>
+          <span class="step-badge pending" id="step-capture-badge">Pending</span>
+        </div>
+
+        <div class="step-row pending" id="step-liveness">
+          <div class="step-icon">🧬</div>
+          <div class="step-info"><h4>Liveness + Deepfake</h4><p>MiniFASNet PAD + DCT analysis</p></div>
+          <span class="step-badge pending" id="step-liveness-badge">Pending</span>
+        </div>
+
+        <div class="step-row pending" id="step-keycloak">
+          <div class="step-icon">🔑</div>
+          <div class="step-info"><h4>Keycloak Auth</h4><p>Issue JWT (RS256, ACR=3)</p></div>
+          <span class="step-badge pending" id="step-keycloak-badge">Pending</span>
+        </div>
+      </div>
+      <div class="proc-footer">
+        <div class="sec-note">
+          🛡️
+          <p>Your biometric data is processed in-memory only. No images are stored. Powered by InsightFace buffalo_l + Claude Agent.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN 5 — RESULT ══ -->
+    <div class="screen" id="screen-result">
+      <div class="status-bar white">
+        <span class="status-time dark" id="clock-r">9:42</span>
+      </div>
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; padding: 24px;">
+        <div class="result-card">
+          <div class="result-icon" id="result-icon">✓</div>
+          <div class="result-title" id="result-title">Identity Verified</div>
+          <div class="result-sub"  id="result-sub">Biometric authentication successful.</div>
+          <div class="result-scores" id="result-scores"></div>
+          <div class="result-actions" id="result-actions"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN 6 — DASHBOARD ══ -->
+    <div class="screen" id="screen-dashboard">
+      <div class="dash-header">
+        <div class="dash-topbar">
+          <div class="dash-greeting">
+            <p>Good morning,</p>
+            <h2 id="dash-username">User 👋</h2>
+          </div>
+          <div class="dash-avatar" onclick="logout()" title="Logout">↩</div>
+        </div>
+        <div class="portfolio-card">
+          <div class="portfolio-label">Total Portfolio Value</div>
+          <div class="portfolio-value" id="dash-total">
+            <span class="portfolio-currency">S$</span><span id="dash-total-val">—</span>
+          </div>
+          <div class="auth-tag">🔒 Biometric Login · ACR=3 · MAS Compliant</div>
+        </div>
+      </div>
+      <div class="dash-body" id="dash-body">
+        <!-- accounts rendered here -->
+      </div>
+    </div>
+
+  </div><!-- /phone -->
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── Config ────────────────────────────────────────────────────────────
+    let AGENT_URL     = localStorage.getItem('agent_url')     || 'http://localhost:8000';
+    let PORTFOLIO_URL = localStorage.getItem('portfolio_url') || 'http://localhost:9000';
+
+    function saveConfig() {
+      AGENT_URL     = document.getElementById('cfg-agent').value.replace(/\/$/, '');
+      PORTFOLIO_URL = document.getElementById('cfg-portfolio').value.replace(/\/$/, '');
+      localStorage.setItem('agent_url', AGENT_URL);
+      localStorage.setItem('portfolio_url', PORTFOLIO_URL);
+      showToast('Config saved ✓');
+    }
+
+    // Restore saved config
+    document.getElementById('cfg-agent').value     = AGENT_URL;
+    document.getElementById('cfg-portfolio').value = PORTFOLIO_URL;
+
+    // ── State ─────────────────────────────────────────────────────────────
+    let accessToken  = null;
+    let currentUser  = null;
+    let cameraStream = null;
+    let attemptCount = 1;
+
+    // ── Clock ─────────────────────────────────────────────────────────────
+    function updateClock() {
+      const now = new Date();
+      const t = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+      document.querySelectorAll('.status-time').forEach(el => el.textContent = t);
+    }
+    updateClock();
+    setInterval(updateClock, 10000);
+
+    // ── Screen navigation ─────────────────────────────────────────────────
+    function go(name) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + name).classList.add('active');
+    }
+
+    // ── Toast ──────────────────────────────────────────────────────────────
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    // ── Camera ─────────────────────────────────────────────────────────────
+    async function startCapture() {
+      const username = document.getElementById('inp-username').value.trim();
+      if (!username) { showToast('Enter a username first'); return; }
+      currentUser = username;
+
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+        });
+        document.getElementById('camera-video').srcObject = cameraStream;
+        go('capture');
+      } catch (e) {
+        showToast('Camera access denied — check browser permissions');
+      }
+    }
+
+    function stopCamera() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+      }
+    }
+
+    // ── Capture photo ──────────────────────────────────────────────────────
+    function capturePhoto() {
+      const video  = document.getElementById('camera-video');
+      const canvas = document.getElementById('capture-canvas');
+      canvas.width  = video.videoWidth  || 640;
+      canvas.height = video.videoHeight || 480;
+
+      const ctx = canvas.getContext('2d');
+      // Flip horizontally to un-mirror the display mirror
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0);
+
+      // Get base64 JPEG, strip the data URL prefix
+      const dataURL   = canvas.toDataURL('image/jpeg', 0.85);
+      const imageB64  = dataURL.split(',')[1];
+
+      stopCamera();
+      runAgent(imageB64);
+    }
+
+    // ── Processing screen helpers ──────────────────────────────────────────
+    function setStep(id, state, badgeText, subText) {
+      const row   = document.getElementById('step-' + id);
+      const badge = document.getElementById('step-' + id + '-badge');
+      const sub   = document.getElementById('step-' + id + '-sub');
+      row.className = 'step-row ' + state;
+      if (badge) { badge.className = 'step-badge ' + state; badge.textContent = badgeText; }
+      if (sub && subText) sub.textContent = subText;
+
+      // Spinner icon
+      const icon = row.querySelector('.step-icon');
+      if (state === 'done') { icon.textContent = '✓'; }
+      else if (state === 'active') { icon.innerHTML = '<span class="spinner">⟳</span>'; }
+    }
+
+    // ── Call agent ─────────────────────────────────────────────────────────
+    async function runAgent(imageB64) {
+      go('processing');
+
+      // Reset steps
+      setStep('capture',  'active',  'Running', 'Validating image…');
+      setStep('liveness', 'pending', 'Pending', null);
+      setStep('keycloak', 'pending', 'Pending', null);
+      document.getElementById('proc-subtitle').textContent = 'Biometric Agent is processing…';
+
+      // Cosmetic step 1 delay
+      await sleep(600);
+      setStep('capture', 'done', 'Done', '1 face detected, quality: high');
+      setStep('liveness', 'active', 'Running', null);
+
+      await sleep(400);
+
+      try {
+        const resp = await fetch(AGENT_URL + '/auth/biometric', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser, image_b64: imageB64 }),
+        });
+
+        const data = await resp.json();
+
+        if (data.status === 'authentication_success') {
+          setStep('liveness', 'done', 'Done', null);
+          setStep('keycloak', 'active', 'Running', null);
+          await sleep(500);
+          setStep('keycloak', 'done', 'Done', null);
+          document.getElementById('proc-subtitle').textContent = 'Authentication successful!';
+          accessToken = data.access_token;
+          await sleep(700);
+          showSuccess(data);
+        } else {
+          setStep('liveness', 'done', 'Done', null);
+          await sleep(400);
+          showFailure(data.reason || 'Authentication failed.');
+        }
+      } catch (e) {
+        showFailure('Cannot reach agent at ' + AGENT_URL + '. Is it running?');
+      }
+    }
+
+    // ── Result screens ─────────────────────────────────────────────────────
+    function showSuccess(data) {
+      go('result');
+      const icon = document.getElementById('result-icon');
+      icon.className = 'result-icon success';
+      icon.textContent = '✓';
+      document.getElementById('result-title').textContent = 'Identity Verified';
+      document.getElementById('result-sub').textContent = 'Biometric authentication successful. JWT issued.';
+
+      document.getElementById('result-scores').innerHTML = `
+        <div class="score-row"><span class="score-label">ACR</span><span class="score-val good">${data.acr || '3'}</span></div>
+        <div class="score-row"><span class="score-label">Token type</span><span class="score-val">${data.token_type || 'Bearer'}</span></div>
+        <div class="score-row"><span class="score-label">Expires in</span><span class="score-val">${data.expires_in || 300}s</span></div>
+        <div class="score-row"><span class="score-label">Scope</span><span class="score-val good">login_api ✓</span></div>
+      `;
+      document.getElementById('result-actions').innerHTML = `
+        <button class="btn-primary" onclick="loadDashboard()">Continue to Dashboard →</button>
+      `;
+    }
+
+    function showFailure(reason) {
+      go('result');
+      const icon = document.getElementById('result-icon');
+      icon.className = 'result-icon fail';
+      icon.textContent = '✕';
+      document.getElementById('result-title').textContent = 'Verification Failed';
+      document.getElementById('result-sub').textContent = reason;
+      document.getElementById('result-scores').innerHTML = `
+        <div class="score-row"><span class="score-label">Reason</span><span class="score-val bad">See above</span></div>
+        <div class="score-row"><span class="score-label">Attempts left</span><span class="score-val">${5 - attemptCount}</span></div>
+      `;
+      attemptCount = Math.min(attemptCount + 1, 5);
+      document.getElementById('capture-attempt').textContent = `Attempt ${attemptCount} of 5`;
+
+      const actions = document.getElementById('result-actions');
+      if (attemptCount <= 5) {
+        actions.innerHTML = `
+          <button class="btn-primary" onclick="startCapture()">Try Again</button>
+          <button class="btn-ghost" onclick="go('login')">Use Password Instead</button>
+        `;
+      } else {
+        actions.innerHTML = `
+          <button class="btn-primary" onclick="go('login')">Return to Login</button>
+        `;
+      }
+    }
+
+    // ── Dashboard ──────────────────────────────────────────────────────────
+    async function loadDashboard() {
+      go('dashboard');
+      document.getElementById('dash-username').textContent = currentUser + ' 👋';
+
+      // Show skeleton
+      const body = document.getElementById('dash-body');
+      body.innerHTML = `
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+      `;
+
+      try {
+        const resp = await fetch(PORTFOLIO_URL + '/portfolio', {
+          headers: { 'Authorization': 'Bearer ' + accessToken }
+        });
+
+        if (resp.status === 401) {
+          showToast('Session expired. Please login again.');
+          logout();
+          return;
+        }
+
+        const data = await resp.json();
+        renderDashboard(data);
+      } catch (e) {
+        body.innerHTML = `
+          <div style="padding:24px;text-align:center;">
+            <p style="color:var(--sc-red);font-size:13px;">Cannot reach Portfolio API at ${PORTFOLIO_URL}</p>
+            <p style="color:var(--text-muted);font-size:11px;margin-top:8px;">Is the portfolio-api running?</p>
+          </div>
+          <div class="quick-actions">
+            <h4>QUICK ACTIONS</h4>
+            <div class="actions-grid">
+              ${['📤 Transfer','📱 Pay Bills','💳 Cards','📊 Invest'].map(a => {
+                const [icon, label] = a.split(' ');
+                return `<div class="action-btn"><div class="action-icon">${icon}</div><span class="action-label">${label}</span></div>`;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    const ACCOUNT_ICONS = { current: '🏦', savings: '💰', fixed_deposit: '📈', investment: '📊' };
+    const ACCOUNT_CLASSES = { current: 'current', savings: 'savings', fixed_deposit: 'fixed', investment: 'invest' };
+    const ACCOUNT_LABELS = { current: 'Current Account', savings: 'Savings Account', fixed_deposit: 'Fixed Deposit', investment: 'Investment Portfolio' };
+
+    function renderDashboard(data) {
+      document.getElementById('dash-total-val').textContent = fmt(data.totalValue);
+
+      const body = document.getElementById('dash-body');
+      const accountsHtml = (data.accounts || []).map(a => `
+        <div class="account-card">
+          <div class="account-icon ${ACCOUNT_CLASSES[a.type] || 'current'}">${ACCOUNT_ICONS[a.type] || '💳'}</div>
+          <div class="account-info">
+            <h4>${a.name}</h4>
+            <p>${ACCOUNT_LABELS[a.type] || a.type} · ${a.accountNumber}</p>
+          </div>
+          <div class="account-balance">
+            <div class="amount">${a.currency} ${fmt(a.balance)}</div>
+          </div>
+        </div>
+      `).join('');
+
+      body.innerHTML = accountsHtml + `
+        <div class="quick-actions">
+          <h4>QUICK ACTIONS</h4>
+          <div class="actions-grid">
+            ${[['📤','Transfer'],['📱','Pay Bills'],['💳','Cards'],['📊','Invest']].map(([icon, label]) =>
+              `<div class="action-btn"><div class="action-icon">${icon}</div><span class="action-label">${label}</span></div>`
+            ).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function fmt(n) {
+      return Number(n).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function logout() {
+      accessToken = null; currentUser = null; attemptCount = 1;
+      document.getElementById('capture-attempt').textContent = 'Attempt 1 of 5';
+      go('login');
+      showToast('Logged out');
+    }
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  </script>
+</body>
+</html>

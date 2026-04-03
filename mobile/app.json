@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Al Habibi Bank",
+    "slug": "alhabibi-banking",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#00865A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Al Habibi Bank uses your camera to verify your identity via facial biometrics.",
+        "NSFaceIDUsageDescription": "Al Habibi Bank uses Face ID for secure login."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#00865A"
+      },
+      "permissions": ["android.permission.CAMERA"]
+    },
+    "plugins": [
+      ["expo-camera", { "cameraPermission": "Al Habibi Bank uses your camera for biometric login." }],
+      "expo-secure-store"
+    ]
+  }
+}

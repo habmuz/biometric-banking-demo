@@ -1,0 +1,165 @@
+{
+  "id": null,
+  "uid": "biometric-auth-v1",
+  "title": "Biometric Auth Agent",
+  "tags": ["biometric", "auth", "claude"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Auth Request Rate",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqpm",
+          "thresholds": { "mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}, {"color": "red", "value": 100}] }
+        }
+      },
+      "targets": [{ "expr": "sum(rate(auth_requests_total[5m])) * 60", "legendFormat": "req/min", "datasource": "Prometheus" }]
+    },
+    {
+      "id": 2,
+      "title": "Auth Success Rate",
+      "type": "gauge",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "minVizValue": 0, "maxVizValue": 100 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 80}, {"color": "green", "value": 95}] }
+        }
+      },
+      "targets": [{
+        "expr": "100 * sum(rate(auth_requests_total{outcome=\"success\"}[5m])) / sum(rate(auth_requests_total[5m]))",
+        "legendFormat": "Success %", "datasource": "Prometheus"
+      }]
+    },
+    {
+      "id": 3,
+      "title": "Outcomes (Last Hour)",
+      "type": "piechart",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "options": { "pieType": "donut", "legendDisplayMode": "table", "legendPlacement": "right" },
+      "targets": [
+        { "expr": "sum(increase(auth_requests_total{outcome=\"success\"}[1h]))", "legendFormat": "Success", "datasource": "Prometheus" },
+        { "expr": "sum(increase(auth_requests_total{outcome=\"face_invalid\"}[1h]))", "legendFormat": "Face Invalid", "datasource": "Prometheus" },
+        { "expr": "sum(increase(auth_requests_total{outcome=\"liveness_failed\"}[1h]))", "legendFormat": "Liveness Failed", "datasource": "Prometheus" },
+        { "expr": "sum(increase(auth_requests_total{outcome=\"token_failed\"}[1h]))", "legendFormat": "Token Failed", "datasource": "Prometheus" },
+        { "expr": "sum(increase(auth_requests_total{outcome=\"agent_error\"}[1h]))", "legendFormat": "Agent Error", "datasource": "Prometheus" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Claude Token Usage (per min)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 4, "w": 4, "h": 3 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        { "expr": "rate(claude_input_tokens_total[5m]) * 60", "legendFormat": "Input tokens/min", "datasource": "Prometheus" },
+        { "expr": "rate(claude_output_tokens_total[5m]) * 60", "legendFormat": "Output tokens/min", "datasource": "Prometheus" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Total Tokens Used",
+      "type": "stat",
+      "gridPos": { "x": 4, "y": 4, "w": 4, "h": 3 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "none" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        { "expr": "claude_input_tokens_total", "legendFormat": "Total Input", "datasource": "Prometheus" },
+        { "expr": "claude_output_tokens_total", "legendFormat": "Total Output", "datasource": "Prometheus" }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Auth Latency Percentiles",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 7, "w": 8, "h": 6 },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(auth_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p50", "datasource": "Prometheus" },
+        { "expr": "histogram_quantile(0.95, sum(rate(auth_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95", "datasource": "Prometheus" },
+        { "expr": "histogram_quantile(0.99, sum(rate(auth_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p99", "datasource": "Prometheus" }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Tool Call p95 Latency",
+      "type": "bargauge",
+      "gridPos": { "x": 8, "y": 7, "w": 4, "h": 6 },
+      "options": { "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": {
+        "defaults": { "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 2}, {"color": "red", "value": 8}] }
+        }
+      },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(tool_call_duration_seconds_bucket[5m])) by (tool_name, le))",
+        "legendFormat": "{{tool_name}}", "datasource": "Prometheus"
+      }]
+    },
+    {
+      "id": 8,
+      "title": "Liveness Score Distribution",
+      "type": "histogram",
+      "gridPos": { "x": 0, "y": 13, "w": 6, "h": 6 },
+      "options": { "fillOpacity": 80, "gradientMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 1, "fillOpacity": 80 },
+          "thresholds": { "mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 0.85}] }
+        }
+      },
+      "targets": [{
+        "expr": "sum(rate(liveness_score_bucket[10m])) by (le)",
+        "legendFormat": "{{le}}", "datasource": "Prometheus", "format": "heatmap"
+      }]
+    },
+    {
+      "id": 9,
+      "title": "Deepfake Score Distribution",
+      "type": "histogram",
+      "gridPos": { "x": 6, "y": 13, "w": 6, "h": 6 },
+      "options": { "fillOpacity": 80 },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 1, "fillOpacity": 80 },
+          "thresholds": { "mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 0.15}] }
+        }
+      },
+      "targets": [{
+        "expr": "sum(rate(deepfake_score_bucket[10m])) by (le)",
+        "legendFormat": "{{le}}", "datasource": "Prometheus", "format": "heatmap"
+      }]
+    },
+    {
+      "id": 10,
+      "title": "Live Score vs Threshold",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 19, "w": 12, "h": 5 },
+      "fieldConfig": {
+        "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 5 }, "min": 0, "max": 1 },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Liveness Threshold" }, "properties": [{ "id": "custom.lineStyle", "value": { "fill": "dash" } }, { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Deepfake Threshold" }, "properties": [{ "id": "custom.lineStyle", "value": { "fill": "dash" } }, { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(liveness_score_bucket[5m])) by (le))", "legendFormat": "Liveness p50", "datasource": "Prometheus" },
+        { "expr": "0.85 * (1 + 0 * rate(auth_requests_total[5m]))", "legendFormat": "Liveness Threshold", "datasource": "Prometheus" },
+        { "expr": "histogram_quantile(0.50, sum(rate(deepfake_score_bucket[5m])) by (le))", "legendFormat": "Deepfake p50", "datasource": "Prometheus" },
+        { "expr": "0.15 * (1 + 0 * rate(auth_requests_total[5m]))", "legendFormat": "Deepfake Threshold", "datasource": "Prometheus" }
+      ]
+    }
+  ]
+}
